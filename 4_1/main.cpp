@@ -18,6 +18,30 @@ T* cpy_non_pod(T* dest, const T* src, size_t n) {
 	return dest;
 }
 
+template<typename T, size_t AllocSize = 8>
+class Array {
+public:
+	Array();
+	Array(T*, size_t);
+	Array(const Array&);
+	Array<T, AllocSize>& operator=(const Array<T, AllocSize>&);
+	Array(Array&&);
+	Array<T, AllocSize>&& operator=(Array<T, AllocSize>&&);
+	~Array();
+
+	T& operator[](size_t i);
+	const T& operator[](size_t i) const;
+	size_t size() const;
+	void push_back(const T&);
+	T pop_back();
+private:
+	void realloc();
+
+	T* data;
+	size_t size_;
+	size_t alloc_size;
+};
+
 
 template<typename T>
 class Heap {
@@ -32,36 +56,11 @@ private:
 	void shift_down(size_t);
 	void shift_up(int);
 
-	template<size_t AllocSize = 8>
-	class Array {
-	public:
-		Array();
-		Array(T*, size_t);
-		Array(const Array&);
-		Array& operator=(const Array&);
-		Array(Array&&);
-		Array&& operator=(Array&&);
-		~Array();
-
-		T& operator[](size_t i);
-		const T& operator[](size_t i) const;
-		size_t size() const;
-		void push_back(const T&);
-		T pop_back();
-	private:
-		void realloc();
-
-		T* data;
-		size_t size_;
-		size_t alloc_size;
-	};
-
-	Heap<T>::Array<128> array;
+	Array<T> array;
 };
 
-template<typename T>
-template<size_t AllocSize>
-Heap<T>::Array<AllocSize>::Array(T* data, size_t size)
+template<typename T, size_t AllocSize>
+Array<T, AllocSize>::Array(T* data, size_t size)
 : data(new T[std::max(size, AllocSize)]), alloc_size(std::max(size, AllocSize)), size_(size) {
 	if (std::is_pod<T>::value) {
 		memcpy(this->data, data, size * sizeof(T));
@@ -78,16 +77,14 @@ Heap<T>::Heap(T* data, size_t size)
 	}
 }
 
-template<typename T>
-template<size_t AllocSize>
-Heap<T>::Array<AllocSize>::Array()
+template<typename T, size_t AllocSize>
+Array<T, AllocSize>::Array()
 : data(new T[AllocSize]), size_(0), alloc_size(AllocSize)
 {
 }
 
-template<typename T>
-template<size_t AllocSize>
-Heap<T>::Array<AllocSize>::Array(const Heap<T>::Array<AllocSize>& other)
+template<typename T, size_t AllocSize>
+Array<T, AllocSize>::Array(const Array<T, AllocSize>& other)
 : data(new T[other.alloc_size]), size_(other.size_), alloc_size(other.alloc_size)
 {
 	if (std::is_pod<T>::value) {
@@ -97,18 +94,16 @@ Heap<T>::Array<AllocSize>::Array(const Heap<T>::Array<AllocSize>& other)
 	}
 }
 
-template<typename T>
-template<size_t AllocSize>
-Heap<T>::Array<AllocSize>::Array(Heap<T>::Array<AllocSize>&& other)
+template<typename T, size_t AllocSize>
+Array<T, AllocSize>::Array(Array<T, AllocSize>&& other)
 : data(std::move(other.data)), size_(std::move(other.size_)), alloc_size(std::move(other.alloc_size)) {
 	other.data = nullptr;
 	other.size_ = 0;
 	other.alloc_size = 0;
 }
 
-template<typename T>
-template<size_t AllocSize>
-Heap<T>::Array<AllocSize>& Heap<T>::Array<AllocSize>::operator=(const Heap<T>::Array<AllocSize>& other) {
+template<typename T, size_t AllocSize>
+Array<T, AllocSize>& Array<T, AllocSize>::operator=(const Array<T, AllocSize>& other) {
 	if (this != &other) {
 		delete [] data;
 		data = new T[other.alloc_size];
@@ -122,10 +117,10 @@ Heap<T>::Array<AllocSize>& Heap<T>::Array<AllocSize>::operator=(const Heap<T>::A
 	}
 }
 
-template<typename T>
-template<size_t AllocSize>
-Heap<T>::Array<AllocSize>&& Heap<T>::Array<AllocSize>::operator=(Heap<T>::Array<AllocSize>&& other) {
+template<typename T, size_t AllocSize>
+Array<T, AllocSize>&& Array<T, AllocSize>::operator=(Array<T, AllocSize>&& other) {
 	if (this != &other) {
+		delete [] data;
 		data = std::move(other.data);
 		size_ = std::move(other.size_);
 		alloc_size = std::move(other.alloc_size);
@@ -135,44 +130,38 @@ Heap<T>::Array<AllocSize>&& Heap<T>::Array<AllocSize>::operator=(Heap<T>::Array<
 	}
 }
 
-template<typename T>
-template<size_t AllocSize>
-Heap<T>::Array<AllocSize>::~Array() {
+template<typename T, size_t AllocSize>
+Array<T, AllocSize>::~Array() {
 	delete [] data;
 }
 
-template<typename T>
-template<size_t AllocSize>
-T& Heap<T>::Array<AllocSize>::operator[](size_t i) {
+template<typename T, size_t AllocSize>
+T& Array<T, AllocSize>::operator[](size_t i) {
 	assert(i < size_);
 	return data[i];
 }
 
-template<typename T>
-template<size_t AllocSize>
-const T& Heap<T>::Array<AllocSize>::operator[](size_t i) const {
+template<typename T, size_t AllocSize>
+const T& Array<T, AllocSize>::operator[](size_t i) const {
 	assert(i < size_);
 	return data[i];
 }
 
-template<typename T>
-template<size_t AllocSize>
-size_t Heap<T>::Array<AllocSize>::size() const {
+template<typename T, size_t AllocSize>
+size_t Array<T, AllocSize>::size() const {
 	return size_;
 }
 
-template<typename T>
-template<size_t AllocSize>
-void Heap<T>::Array<AllocSize>::push_back(const T& elem) {
+template<typename T, size_t AllocSize>
+void Array<T, AllocSize>::push_back(const T& elem) {
 	if (size_ == alloc_size) {
 		realloc();
 	}
 	data[size_++] = elem;
 }
 
-template<typename T>
-template<size_t AllocSize>
-void Heap<T>::Array<AllocSize>::realloc() {
+template<typename T, size_t AllocSize>
+void Array<T, AllocSize>::realloc() {
 	alloc_size *= 2;
 	T* new_data = new T[alloc_size];
 	if (std::is_pod<T>::value) {
@@ -184,9 +173,8 @@ void Heap<T>::Array<AllocSize>::realloc() {
 	data = new_data;
 }
 
-template<typename T>
-template<size_t AllocSize>
-T Heap<T>::Array<AllocSize>::pop_back() {
+template<typename T, size_t AllocSize>
+T Array<T, AllocSize>::pop_back() {
 	return data[--size_];
 }
 
@@ -265,6 +253,15 @@ unsigned take_fruits(Heap<int>& heap, unsigned max_weigt) {
 	delete [] buffer;
 }
 
+unsigned count_taking(Heap<int>& heap, int k) {
+	unsigned count = 0;
+	while(heap.size()) {
+		take_fruits(heap, k);
+		++count;
+	}
+	return count;
+}
+
 int main() {
 	int n = 0;
 	std::cin >> n;
@@ -282,11 +279,6 @@ int main() {
 	delete [] buffer;	
 	int k = 0;
 	std::cin >> k;
-	unsigned count = 0;
-	while(heap.size()) {
-		take_fruits(heap, k);
-		++count;
-	}	
-	std::cout << count << std::endl;
+	std::cout << count_taking(heap, k) << std::endl;
 	return 0;
 }
