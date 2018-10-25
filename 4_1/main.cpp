@@ -50,7 +50,7 @@ public:
 	Heap(T*, size_t); 	
 	void append(const T&);
 	T extractMax();
-	T readMax() const;
+	const T& readMax() const;
 	size_t size() const;
 private:
 	void shift_down(size_t);
@@ -225,7 +225,7 @@ T Heap<T>::extractMax() {
 }
 
 template<typename T>
-T Heap<T>::readMax() const {
+const T& Heap<T>::readMax() const {
 	assert(array.size() != 0);
 	return array[0];
 }
