@@ -32,7 +32,7 @@ private:
 	void shift_down(size_t);
 	void shift_up(int);
 
-	template<size_t AllocSize = 128>
+	template<size_t AllocSize = 8>
 	class Array {
 	public:
 		Array();

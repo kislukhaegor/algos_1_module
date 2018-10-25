@@ -108,6 +108,7 @@ void merge_sort(T* array, size_t size, Comp comp = Comp()) {
 			merge(array, j, std::min(j + i * 2, size), j + i, buffer);
 		}
 	}
+	delete [] buffer;
 }
 
 void show_add(CustomerLine* array, int start, int right_time, size_t size) {
